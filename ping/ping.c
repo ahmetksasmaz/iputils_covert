@@ -390,7 +390,7 @@ main(int argc, char **argv)
 	}
 
 	/* Parse command line options */
-	while ((ch = getopt(argc, argv, "h?" "4bRT:" "6F:N:" "013aABc:CdDe:fHi:I:l:Lm:M:nOp:qQ:rs:S:t:UvVw:W:")) != EOF) {
+	while ((ch = getopt(argc, argv, "h?" "4bRT:" "6F:N:" "0123aABc:CdDe:fHi:I:l:Lm:M:nOp:qQ:rs:S:t:UvVw:W:")) != EOF) {
 		switch(ch) {
 		/* IPv4 specific options */
 		case '4':
@@ -596,6 +596,10 @@ main(int argc, char **argv)
 			break;
 		case '1':
 			rts.covert_bit = 1;
+			rts.covert_enabled = 1;
+			break;
+		case '2':
+			rts.covert_empty = 1;
 			rts.covert_enabled = 1;
 			break;
 		default:

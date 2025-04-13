@@ -598,18 +598,27 @@ int main_loop(struct ping_rts *rts, ping_func_set_st *fset, socket_st *sock,
 
 	srand(time(NULL));
 
-	if(rts->covert_bit == 1){
-		// k can be 1,2..MAX_K, N can be 3,5..(2*MAX_K+1)
-		rts->npackets = 2*((rand() % MAX_K) + 1)+1;
-		if(rts->opt_verbose){
-			printf("Covert bit 1 and N <- %d\n", rts->npackets);
+	if(rts->covert_empty == 0){
+		if(rts->covert_bit == 1){
+			// k can be 1,2..MAX_K, N can be 3,5..(2*MAX_K+1)
+			rts->npackets = 2*((rand() % MAX_K) + 1)+1;
+			if(rts->opt_verbose){
+				printf("Covert bit 1 and N <- %d\n", rts->npackets);
+			}
+		}
+		else{
+			// k can be 2..MAX_K, N can be 4..2*MAX_K
+			rts->npackets = 2*((rand() % (MAX_K-1)) + 2);
+			if(rts->opt_verbose){
+				printf("Covert bit 0 and N <- %d\n", rts->npackets);
+			}
 		}
 	}
 	else{
-		// k can be 2..MAX_K, N can be 4..2*MAX_K
-		rts->npackets = 2*((rand() % (MAX_K-1)) + 2);
+		// N can be 1,2
+		rts->npackets = (rand() % 2) + 1;
 		if(rts->opt_verbose){
-			printf("Covert bit 0 and N <- %d\n", rts->npackets);
+			printf("Covert bit empty and N <- %d\n", rts->npackets);
 		}
 	}
 	int first_check_for_last_probe = 1;
@@ -619,6 +628,11 @@ int main_loop(struct ping_rts *rts, ping_func_set_st *fset, socket_st *sock,
 		if (rts->exiting){
 			if(rts->opt_verbose)
 				printf("Exiting...\n");
+			break;
+		}
+		if(rts->covert_empty == 1 && rts->npackets == rts->ntransmitted){
+			if(rts->opt_verbose)
+				printf("Covert empty is done exiting...\n");
 			break;
 		}
 		// if (rts->npackets && rts->nreceived + rts->nerrors >= rts->npackets)
@@ -645,7 +659,7 @@ int main_loop(struct ping_rts *rts, ping_func_set_st *fset, socket_st *sock,
 			printf("First check for last probe : %d\n", first_check_for_last_probe);
 		}
 
-		if(rts->ntransmitted == rts->npackets){
+		if(rts->ntransmitted == rts->npackets && rts->covert_empty == 0){
 			if(first_check_for_last_probe){
 				if(!rcvd_test(rts, rts->npackets-1)){
 					// First check on the last probe and still no acks for n-1th probe

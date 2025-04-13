@@ -262,7 +262,7 @@ struct ping_rts {
 		opt_verbose:1;
 	
 	/* Covert channel option bits */
-	unsigned char covert_enabled:1, covert_bit:1;
+	unsigned char covert_enabled:1, covert_bit:1, covert_empty:1;
 };
 /* FIXME: global_rts will be removed in future */
 extern struct ping_rts *global_rts;
