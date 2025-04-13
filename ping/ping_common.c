@@ -48,7 +48,10 @@ void usage(void)
 	fprintf(stderr, _(
 		"\nUsage\n"
 		"  ping [options] <destination>\n"
+		"  Either -0 or -1 must be specified for covert channel.\n"
 		"\nOptions:\n"
+		"  -0                 send bit-0 with covert channel\n"
+		"  -1                 send bit-1 with covert channel\n"
 		"  <destination>      DNS name or IP address\n"
 		"  -3                 RTT precision (do not round up the result time)\n"
 		"  -a                 use audible ping\n"
@@ -593,14 +596,38 @@ int main_loop(struct ping_rts *rts, ping_func_set_st *fset, socket_st *sock,
 
 	iov.iov_base = (char *)packet;
 
+	srand(time(NULL));
+
+	if(rts->covert_bit == 1){
+		// k can be 1,2..MAX_K, N can be 3,5..(2*MAX_K+1)
+		rts->npackets = 2*((rand() % MAX_K) + 1)+1;
+		if(rts->opt_verbose){
+			printf("Covert bit 1 and N <- %d\n", rts->npackets);
+		}
+	}
+	else{
+		// k can be 2..MAX_K, N can be 4..2*MAX_K
+		rts->npackets = 2*((rand() % (MAX_K-1)) + 2);
+		if(rts->opt_verbose){
+			printf("Covert bit 0 and N <- %d\n", rts->npackets);
+		}
+	}
+	int first_check_for_last_probe = 1;
+
 	for (;;) {
 		/* Check exit conditions. */
-		if (rts->exiting)
+		if (rts->exiting){
+			if(rts->opt_verbose)
+				printf("Exiting...\n");
 			break;
-		if (rts->npackets && rts->nreceived + rts->nerrors >= rts->npackets)
+		}
+		// if (rts->npackets && rts->nreceived + rts->nerrors >= rts->npackets)
+		// 	break;
+		if (rts->deadline && rts->nerrors){
+			if(rts->opt_verbose)
+				printf("Deadline reached...\n");
 			break;
-		if (rts->deadline && rts->nerrors)
-			break;
+		}
 		/* Check for and do special actions. */
 		if (rts->status_snapshot)
 			status(rts);
@@ -610,6 +637,39 @@ int main_loop(struct ping_rts *rts, ping_func_set_st *fset, socket_st *sock,
 			next = pinger(rts, fset, sock);
 			next = schedule_exit(rts, next);
 		} while (next <= 0);
+
+		if(rts->opt_verbose){
+			printf("Transmitted : %d\n", rts->ntransmitted);
+			printf("Packets     : %d\n", rts->npackets);
+			printf("Last acked	: %d\n", rts->acked);
+			printf("First check for last probe : %d\n", first_check_for_last_probe);
+		}
+
+		if(rts->ntransmitted == rts->npackets){
+			if(first_check_for_last_probe){
+				if(!rcvd_test(rts, rts->npackets-1)){
+					// First check on the last probe and still no acks for n-1th probe
+					if (rts->opt_verbose)
+					printf("Setting N <- %d due to n-1th probe\n", rts->npackets+2);
+					rts->npackets = rts->npackets + 2;
+				}
+				else{
+					first_check_for_last_probe = 0;
+				}
+			}else{
+				if(!rcvd_test(rts, rts->npackets)){
+					// Second check for last probe and still no acks for nth probe
+					if (rts->opt_verbose)
+						printf("Setting N <- %d due to nth probe\n", rts->npackets+2);
+					rts->npackets = rts->npackets + 2;
+					first_check_for_last_probe = 1;
+				}else{
+					rts->exiting = 1;
+					if (rts->opt_verbose)
+						printf("My exit...\n");
+				}
+			}
+		}
 
 		/* "next" is time to send next probe, if positive.
 		 * If next<=0 send now or as soon as possible. */

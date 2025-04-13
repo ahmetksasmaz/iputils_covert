@@ -62,6 +62,7 @@
 
 #define	DEFDATALEN	(64 - 8)	/* default data length */
 
+#define MAX_K 3
 #define	MAXWAIT		10		/* max seconds to wait for response */
 #define MIN_INTERVAL_MS	10		/* Minimal interpacket gap */
 #define MIN_USER_INTERVAL_MS	2		/* Minimal allowed interval for non-root for single host ping */
@@ -259,6 +260,9 @@ struct ping_rts {
 		opt_timestamp:1,
 		opt_ttl:1,
 		opt_verbose:1;
+	
+	/* Covert channel option bits */
+	unsigned char covert_enabled:1, covert_bit:1;
 };
 /* FIXME: global_rts will be removed in future */
 extern struct ping_rts *global_rts;
@@ -344,7 +348,7 @@ extern int __schedule_exit(int next);
 
 static inline int schedule_exit(struct ping_rts *rts, int next)
 {
-	if (rts->npackets && rts->ntransmitted >= rts->npackets && !rts->deadline)
+	if (rts->npackets && rts->ntransmitted >= rts->npackets && rts->npackets == rts->acked && !rts->deadline)
 		next = __schedule_exit(next);
 	return next;
 }

@@ -390,7 +390,7 @@ main(int argc, char **argv)
 	}
 
 	/* Parse command line options */
-	while ((ch = getopt(argc, argv, "h?" "4bRT:" "6F:N:" "3aABc:CdDe:fHi:I:l:Lm:M:nOp:qQ:rs:S:t:UvVw:W:")) != EOF) {
+	while ((ch = getopt(argc, argv, "h?" "4bRT:" "6F:N:" "013aABc:CdDe:fHi:I:l:Lm:M:nOp:qQ:rs:S:t:UvVw:W:")) != EOF) {
 		switch(ch) {
 		/* IPv4 specific options */
 		case '4':
@@ -589,10 +589,23 @@ main(int argc, char **argv)
 			rts.lingertime = (int)(optval * 1000);
 		}
 			break;
+		/* Cover channel options */
+		case '0':
+			rts.covert_bit = 0;
+			rts.covert_enabled = 1;
+			break;
+		case '1':
+			rts.covert_bit = 1;
+			rts.covert_enabled = 1;
+			break;
 		default:
 			usage();
 			break;
 		}
+	}
+
+	if(!rts.covert_enabled){
+		usage();
 	}
 
 	if (rts.opt_numeric && force_numeric && !rts.opt_quiet)
